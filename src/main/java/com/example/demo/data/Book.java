@@ -20,14 +20,18 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Book{
+
     @Id
     @GeneratedValue
     Long bookId;
+
     String title;
+
     @ManyToOne
     @JoinColumn(name = "author_id")
     Author author;
+
     LocalDate yearOfCreation;
 
-
+    String location;
 }

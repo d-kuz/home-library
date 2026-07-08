@@ -15,4 +15,6 @@ public class BookAutorDto{
     String title;
 
     String yearOfCreation;
+
+    String location;
 }

@@ -37,6 +37,7 @@ public class Author {
 
     @Column(unique = true, nullable = false)
     String name;
+
     @OneToMany(mappedBy = "author", cascade = CascadeType.ALL)
     @Builder.Default
     private Set<Book> books = new HashSet<>();

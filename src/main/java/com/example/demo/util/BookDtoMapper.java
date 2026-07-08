@@ -15,8 +15,9 @@ import java.util.List;
 public class BookDtoMapper {
 
     public static Book createBookEntity(CreateBookDto dto, Author author){
-        Book book = Book.builder().title(dto.getTitle())
-                .yearOfCreation(dto.getYearOfCreation()!=null ? LocalDate.parse(dto.getYearOfCreation()): null).build();
+        Book book = Book.builder().title(dto.getTitle()).author(author)
+                .yearOfCreation(dto.getYearOfCreation()!=null ? LocalDate.parse(dto.getYearOfCreation()): null)
+                .location(dto.getLocation()).build();
         author.addBook(book);
         return book;
     }
@@ -24,7 +25,8 @@ public class BookDtoMapper {
         List<Book> books= new ArrayList<>(dtos.size());
         for (CreateBookDto dto: dtos){
             Book book = Book.builder().title(dto.getTitle()).author(author)
-                    .yearOfCreation(dto.getYearOfCreation()!=null ? LocalDate.parse(dto.getYearOfCreation()): null).build();
+                    .yearOfCreation(dto.getYearOfCreation()!=null ? LocalDate.parse(dto.getYearOfCreation()): null)
+                    .location(dto.getLocation()).build();
             books.add(book);
         }
 

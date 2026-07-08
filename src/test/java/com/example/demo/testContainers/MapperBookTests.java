@@ -56,7 +56,8 @@ class MapperBookTests {
         authorRepository.deleteAll();
         mainAuthor = Author.builder().name("author").build();
         mainAuthor2 = Author.builder().name("author2").build();
-        bookDto1 = CreateBookDto.builder().title("book1").author("author").build();
+        bookDto1 = CreateBookDto.builder().title("book1").yearOfCreation("1994")
+                .location("шкаф1").author("author").build();
         bookDto2 = CreateBookDto.builder().title("book2").author("author2").build();
     }
 
@@ -73,6 +74,7 @@ class MapperBookTests {
             Assertions.assertEquals(bookDto1.getTitle(), book.getTitle());
             Assertions.assertEquals(bookDto1.getAuthor(), book.getAuthor().getName());
             Assertions.assertEquals(bookDto1.getYearOfCreation(), book.getYearOfCreation());
+            Assertions.assertEquals(bookDto1.getLocation(), book.getLocation());
         }catch (Exception e){
             log.error(e.getMessage());
         }
@@ -94,6 +96,7 @@ class MapperBookTests {
             Assertions.assertEquals(bookDto1.getTitle(), book.getTitle());
             Assertions.assertEquals(bookDto1.getAuthor(), book.getAuthor().getName());
             Assertions.assertEquals(bookDto1.getYearOfCreation(), book.getYearOfCreation());
+            Assertions.assertEquals(bookDto1.getLocation(), book.getLocation());
 
         }catch (Exception e){
             log.error(e.getMessage());
@@ -111,7 +114,6 @@ class MapperBookTests {
         try {
             Author author2 = author1;
             List<Book> books = BookDtoMapper.createBooksEntity(new ArrayList<>(List.of(bookDto1, bookDto2)), author2);
-
             Assertions.assertTrue(!author2.getBooks().isEmpty());
             Assertions.assertEquals(2, author2.getBooks().size());
         }catch (Exception e){

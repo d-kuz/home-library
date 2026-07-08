@@ -11,9 +11,15 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class CreateBookDto {
+
     @NotBlank
     String title;
+
     @NotBlank
     String author;
+
     String yearOfCreation;
+
+    String location;
+
 }
