@@ -10,7 +10,7 @@ public class MyExceptionHandler {
 
     @ExceptionHandler(NotFoundException.class)
     public ResponseEntity<String> handleException(NotFoundException e) {
-        return new ResponseEntity<>("Не найжено " + e.getMessage(), HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>("Не найдено " + e.getMessage(), HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(CreateException.class)
@@ -22,11 +22,5 @@ public class MyExceptionHandler {
     public ResponseEntity<String> handleException(DeleteException e) {
         return new ResponseEntity<>("Ошибка удаления " + e.getMessage(), HttpStatus.NOT_FOUND);
     }
-
-    @ExceptionHandler(FilterException.class)
-    public ResponseEntity<String> handleException(FilterException e) {
-        return new ResponseEntity<>("Ошибка поиска " + e.getMessage(), HttpStatus.NOT_FOUND);
-    }
-
 
 }

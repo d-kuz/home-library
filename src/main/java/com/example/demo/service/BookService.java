@@ -5,6 +5,8 @@ import com.example.demo.data.Book;
 import com.example.demo.dto.request.CreateAuthorDto;
 import com.example.demo.dto.request.CreateBookDto;
 import com.example.demo.dto.request.FilterBookDto;
+import com.example.demo.dto.request.UpdateBookDto;
+import com.example.demo.dto.response.AuthorDto;
 import com.example.demo.dto.response.GetFilterBookDto;
 import com.example.demo.dto.response.GetBookDto;
 import com.example.demo.exception.DeleteException;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -42,22 +45,37 @@ public class BookService {
         this.authorService = authorService;
     }
 
-    public Author addAuthor(CreateAuthorDto authorDto){
+    public AuthorDto addAuthor(CreateAuthorDto authorDto){
         Objects.requireNonNull(authorDto);
         Objects.requireNonNull(authorDto.getName());
         Author author = Author.builder().name(authorDto.getName()).build();
-        return authorRepository.save(author);
+        return AuthorDto.builder().author(authorRepository.save(author)).build();
     }
 
     public GetBookDto findById(Long bookId) throws NotFoundException {
-        try {
             Objects.requireNonNull(bookId);
-            Optional<Book> getBook = bookRepository.findById(bookId);
-            return GetBookDto.builder().book(getBook.get()).build();
-        } catch (Exception e) {
-            log.error(e.getMessage());
-            throw new NotFoundException("книга по id: " + e.getMessage());
+            Book book = bookRepository.findById(bookId).orElseThrow(() -> new NotFoundException("Книга с ID " + bookId + " не найдена"));
+            return GetBookDto.builder().book(book).build();
+    }
+
+    public GetBookDto updateBook(Long bookId, UpdateBookDto dto) throws NotFoundException {
+        Book book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new NotFoundException("Книга с ID " + bookId + " не найдена"));
+        if (dto.getTitle() != null && !dto.getTitle().trim().isEmpty()){
+            book.setTitle(dto.getTitle().trim());
         }
+        if (dto.getAuthor() != null && !dto.getAuthor().trim().isEmpty()){
+            book.setAuthor(allAuthorToListFromDBAndNew(Set.of(dto.getAuthor().trim())).getFirst());
+        }
+        if (dto.getLocation() != null && !dto.getLocation().trim().isEmpty()){
+            book.setLocation(dto.getLocation().trim());
+        }
+        if (dto.getDescription() != null && !dto.getDescription().trim().isEmpty()){
+            book.setDescription(dto.getDescription().trim());
+        }
+
+        return GetBookDto.builder().book(bookRepository.save(book)).build();
+
     }
 
 
@@ -67,22 +85,36 @@ public class BookService {
             bookRepository.deleteById(bookId);
         }catch (Exception e){
             log.error(e.getMessage());
-            throw new DeleteException("книги: " + e.getMessage());
+            throw new DeleteException("Не удалена книга с ID "+ bookId + " "+ e.getMessage());
         }
     }
 
 
-    public GetFilterBookDto filterBook(FilterBookDto filterBookDto) throws NotFoundException {
-        try {
-            Objects.requireNonNull(filterBookDto);
-            Author author = authorRepository.getAuthorByName(filterBookDto.getNameAuthor());
-            if (author != null){
-            List<Book> books= bookRepository.getBookByAuthorAndTitle(author,filterBookDto.getTitle());
-            return GetFilterBookDto.builder().books(books).build();}
-        }catch (Exception e){
-            throw new  NotFoundException("страницы книги: " + e.getMessage());
+    public GetFilterBookDto filterBook(FilterBookDto dto) {
+        String nameAuthor = Optional.ofNullable(dto.getNameAuthor())
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .orElse(null);
+
+        String title = Optional.ofNullable(dto.getTitle())
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .orElse(null);
+
+        if (nameAuthor == null && title == null) {
+            throw new IllegalArgumentException("Необходимо указать имя автора или название книги");
         }
-        return null;
+
+        Author author = null;
+        if (nameAuthor != null) {
+            author = authorRepository.getAuthorByName(dto.getNameAuthor()).orElseThrow();
+        }
+
+        List<Book> books = bookRepository.findBooksFlexible(author, dto.getTitle());
+
+        return GetFilterBookDto.builder()
+                .books(books != null ? books : Collections.emptyList())
+                .build();
     }
 
     @Transactional
@@ -100,23 +132,22 @@ public class BookService {
         }
 
         try {
-            List<Author>authors = allAuthorToListFromDBAndNew(authorsName);
+            List<Author>authors = allAuthorToListFromDBAndNew(authorsName.keySet());
 
             List<Book> h = authors.stream().flatMap(x ->
                     getBooksToAuthor(x, authorsName.get(x.getName())).stream()).collect(Collectors.toList());
 
-            List<Book> booksAuthors = authorService.saveAll(authors).stream().flatMap(x -> x.getBooks().stream()).collect(Collectors.toList());
-            return booksAuthors;
+            return authorService.saveAll(authors).stream().flatMap(x -> x.getBooks().stream()).collect(Collectors.toList());
         }catch (Exception e){
             log.error(e.getMessage());
             throw new RuntimeException(e.getMessage());
         }
     }
 
-    public List<Author> allAuthorToListFromDBAndNew(HashMap<String, List<CreateBookDto>> authorsName){
+    public List<Author> allAuthorToListFromDBAndNew(Set <String> authorsName){
         List<Author> authors = new ArrayList<>(authorsName.size());
         var cache = cacheManager.getCache("author");
-        Set<String> authorsNameNoCache = new HashSet<>(authorsName.keySet());
+        Set<String> authorsNameNoCache = new HashSet<>(authorsName);
 
         if (cache != null){
             authors.addAll(authorsNameNoCache.stream().map(name -> cache.get(name, Author.class)).filter(Objects::nonNull).toList());

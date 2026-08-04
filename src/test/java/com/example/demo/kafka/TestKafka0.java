@@ -32,21 +32,17 @@ public class TestKafka0 {
     @Test
     //не более одного раза
     void produceConsume() throws Exception {
-        // Получаем bootstrap-адрес запущенного брокера
         String bootstrap = kafka.getBootstrapServers();
 
-        // Конфигурация Kafka-продюсера
         Properties producerProps = new Properties();
         producerProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrap);
         producerProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
         producerProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
 
-        // Создаём продюсер и отправляем одно сообщение в demo-topic
         KafkaProducer<String, String> producer = new KafkaProducer<>(producerProps);
-        producer.send(new ProducerRecord<>("demo-topic", "my-key", "Hello Kafka!")).get();
+        producer.send(new ProducerRecord<>("demo-topic", "my-key", "test")).get();
         producer.close();
 
-        // Конфигурация Kafka-консьюмера
         Properties consumerProps = new Properties();
         consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrap);
         consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, "test-group");
@@ -54,16 +50,13 @@ public class TestKafka0 {
         consumerProps.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         consumerProps.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
 
-        // Создаём консьюмера и подписываемся на тот же топик
         KafkaConsumer<String, String> consumer = new KafkaConsumer<>(consumerProps);
         consumer.subscribe(List.of("demo-topic"));
 
-        // Ждём сообщения
         ConsumerRecords<String, String> records = consumer.poll(Duration.ofSeconds(5));
 
-        // Проверяем, что пришло именно то сообщение
         Assertions.assertEquals(1, records.count());
-        Assertions.assertEquals("Hello Kafka!", records.iterator().next().value());
+        Assertions.assertEquals("test", records.iterator().next().value());
     }
 
 }

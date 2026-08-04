@@ -22,11 +22,9 @@ class RetryableTestConsumer {
     @Setter
     private String payload;
 
-    // Счётчик для проверки идемпотентности
     @Getter
     private final AtomicInteger processedCount = new AtomicInteger(0);
 
-    // Хранения ID обработанных сообщений
     private final Set<String> processedIds = ConcurrentHashMap.newKeySet();
 
     @KafkaListener(topics = "demo-topic", groupId = "retry-group")

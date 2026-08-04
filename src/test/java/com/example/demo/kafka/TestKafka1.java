@@ -126,7 +126,6 @@ public class TestKafka1 {
         failFirst = true;
         receivedMessages = new LinkedBlockingQueue<>();
 
-        //настройка отказа при первом обращении
         container = new KafkaMessageListenerContainer<>(consumerFactory, new ContainerProperties("demo-topic"));
         container.setupMessageListener((MessageListener<String, String>) record -> {
             if (failFirst) {
@@ -141,25 +140,19 @@ public class TestKafka1 {
         container.start();
         ContainerTestUtils.waitForAssignment(container, 1);
 
-        // Отправляем сообщение
         kafkaTemplate.send("demo-topic", "test-key", "test-value");
         kafkaTemplate.flush();
 
-        // Ждём: первая попытка — ошибка, сообщение не коммитится
         Thread.sleep(2000);
 
-        // Перезапускаем контейнер (имитация перезапуска потребителя)
         container.stop();
         container.start();
         ContainerTestUtils.waitForAssignment(container, 1);
 
-        // Вторая попытка — успешна
         String result = receivedMessages.poll(10, TimeUnit.SECONDS);
         Assertions.assertEquals("test-value", result);
 
-        // Проверяем, что сообщение пришло только один раз (после восстановления)
         Assertions.assertTrue(receivedMessages.isEmpty(), "Сообщение не должно быть обработано дважды после успеха");
-        // отправить подтверждение, что пришло
 
         container.stop();
     }
@@ -167,28 +160,15 @@ public class TestKafka1 {
     @Test
     void consume3read() throws Exception {
 
-//        Сценария интеграционного теста
-//        Отправка сообщения
-//        Обработка с возможной ошибкой
-//        Повторная доставку при сбое
-//        Успешная обработка при повторной попытке
-//        Ручное подтверждение (acknowledgment)
-//                Задача - проверить, что:
-//        Потребитель получает сообщение.
-//                При ошибке — сообщение не коммитится и будет перечитано.
-//        При успешной обработке — сообщение подтверждается и не дублируется.
-
         Map<String,  String> cashe = new HashMap<>();
         ConcurrentKafkaListenerContainerFactory<String, String> factory =
                 new ConcurrentKafkaListenerContainerFactory<>();
         factory.setConsumerFactory(consumerFactory);
         factory.getContainerProperties().setAckMode(ContainerProperties.AckMode.MANUAL_IMMEDIATE);
 
-        // Создаем контейнер через фабрику
         ConcurrentMessageListenerContainer<String, String> container =
                 factory.createContainer("demo-topic");
 
-        // Устанавливаем слушатель
         container.setupMessageListener((AcknowledgingMessageListener<String, String>)
                 (record, acknowledgment) -> {
                     if (failFirst) {
@@ -199,24 +179,20 @@ public class TestKafka1 {
                     acknowledgment.acknowledge(-1);
                 });
 
-        // Запускаем контейнер
         container.start();
         ContainerTestUtils.waitForAssignment(container, 1);
 
         try {
-            // Отправляем сообщение
             kafkaTemplate.send("demo-topic", "test-key", "test-value");
             kafkaTemplate.send("demo-topic", "test-key", "test-value");
             kafkaTemplate.flush();
 
-            // Ждем результат
             Awaitility.await().atMost(10, TimeUnit.SECONDS)
                     .pollInterval(1, TimeUnit.SECONDS)
                     .until(() -> cashe.size() <= 1);
             String result = cashe.get("test-key");
             Assertions.assertEquals("test-value", result);
 
-            // Проверяем отсутствие дублей
             Thread.sleep(200);
             Assertions.assertTrue(cashe.size() <= 1,
                     "Сообщение не должно быть обработано дважды");

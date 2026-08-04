@@ -56,7 +56,7 @@ class RepositoryTests {
         Book book1 = Book.builder().title("book1").yearOfCreation(LocalDate.parse("1234-01-01")).build();
         Book book2 = Book.builder().title("book2").yearOfCreation(LocalDate.parse("1300-01-01")).build();
         Author author = authorRepository.save(Author.builder().name("author1").books(Set.of(book1, book2)).build());
-        Assertions.assertTrue(!author.getBooks().isEmpty());
+        Assertions.assertFalse(author.getBooks().isEmpty());
         Assertions.assertEquals("author1", author.getName());
 
 	}
@@ -67,8 +67,8 @@ class RepositoryTests {
         Book book2 = Book.builder().title("book2").yearOfCreation(LocalDate.parse("1300-01-01")).build();
         Author author1 = authorRepository.save(Author.builder().name("author1").books(Set.of(book1, book2)).build());
 
-        Optional<Author> author2 = authorRepository.findById(author1.getAuthorId());
-        Assertions.assertEquals(author2.get(), author1);
+        Author author2 = authorRepository.findById(author1.getAuthorId()).orElseThrow();
+        Assertions.assertEquals(author2, author1);
 
 
     }
@@ -79,8 +79,8 @@ class RepositoryTests {
         Book book2 = Book.builder().title("book2").yearOfCreation(LocalDate.parse("1300-01-01")).build();
         Author author1 = authorRepository.save(Author.builder().name("author1").books(Set.of(book1, book2)).build());
 
-        Optional<Author> author2 = authorRepository.findById(author1.getAuthorId());
-        Assertions.assertTrue(!author2.get().getBooks().isEmpty());
+        Author author2 = authorRepository.findById(author1.getAuthorId()).orElseThrow();
+        Assertions.assertFalse(author2.getBooks().isEmpty());
 
     }
 
@@ -88,11 +88,9 @@ class RepositoryTests {
     void testDeleteBook(){
         Book book1 = Book.builder().title("book1").yearOfCreation(LocalDate.parse("1234-01-01")).build();
         Book saveBook = bookRepository.save(book1);
-        Assertions.assertTrue(!bookRepository.findAll().isEmpty());
+        Assertions.assertFalse(bookRepository.findAll().isEmpty());
         bookRepository.deleteById(saveBook.getBookId());
         Assertions.assertTrue(bookRepository.findAll().isEmpty());
     }
-
-
 
 }

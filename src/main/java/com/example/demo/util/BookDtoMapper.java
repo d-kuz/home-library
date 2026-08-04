@@ -17,7 +17,7 @@ public class BookDtoMapper {
     public static Book createBookEntity(CreateBookDto dto, Author author){
         Book book = Book.builder().title(dto.getTitle()).author(author)
                 .yearOfCreation(dto.getYearOfCreation()!=null ? LocalDate.parse(dto.getYearOfCreation()): null)
-                .location(dto.getLocation()).build();
+                .location(dto.getLocation()).description(dto.getDescription()).build();
         author.addBook(book);
         return book;
     }
@@ -26,7 +26,7 @@ public class BookDtoMapper {
         for (CreateBookDto dto: dtos){
             Book book = Book.builder().title(dto.getTitle()).author(author)
                     .yearOfCreation(dto.getYearOfCreation()!=null ? LocalDate.parse(dto.getYearOfCreation()): null)
-                    .location(dto.getLocation()).build();
+                    .location(dto.getLocation()).description(dto.getDescription()).build();
             books.add(book);
         }
 

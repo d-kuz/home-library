@@ -22,4 +22,6 @@ public class CreateBookDto {
 
     String location;
 
+    String description;
+
 }

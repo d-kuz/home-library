@@ -4,6 +4,9 @@ import com.example.demo.data.Author;
 import com.example.demo.data.Book;
 import com.example.demo.dto.request.CreateAuthorDto;
 import com.example.demo.dto.request.CreateBookDto;
+import com.example.demo.dto.request.FilterBookDto;
+import com.example.demo.dto.response.AuthorDto;
+import com.example.demo.dto.response.GetFilterBookDto;
 import com.example.demo.exception.DeleteException;
 import com.example.demo.repository.AuthorRepository;
 import com.example.demo.repository.BookRepository;
@@ -25,6 +28,8 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -85,9 +90,44 @@ class ServiceBookTests {
     @Test
     void testAddAuthor (){
         CreateAuthorDto createAuthorDto = CreateAuthorDto.builder().name("author").build();
-        Author author = bookService.addAuthor(createAuthorDto);
-        Assertions.assertNotNull(author);
-        Assertions.assertEquals("author", author.getName());
+        AuthorDto author = bookService.addAuthor(createAuthorDto);
+        Assertions.assertNotNull(author.getAuthor());
+        Assertions.assertEquals("author", author.getAuthor().getName());
+    }
+
+    @Test
+    void testFindAllEmpty() {
+        List<Book> books = bookRepository.findAll();
+        Assertions.assertTrue(books.isEmpty());
+    }
+
+    @Test
+    void testAddListBookAuthor(){
+        try {
+            List<Book> books = bookService.addBookList(new ArrayList<>(List.of(bookDto1,bookDto2)));
+            List<Author> authors = authorRepository.findAll();
+            Assertions.assertEquals(1, authors.size());
+            Assertions.assertEquals(2, books.size());
+        }catch (Exception e){
+            log.error(e.getMessage());
+        }
+
+    }
+
+    @Test
+    void testAddListBookAuthors(){
+        Author author = Author.builder().name("author").build();
+        Author author2 = Author.builder().name("author2").build();
+        CreateBookDto bookDto = CreateBookDto.builder().title("book1").author("author").build();
+        CreateBookDto bookDto2 = CreateBookDto.builder().title("book2").author("author2").build();
+        authorRepository.save(author);
+        authorRepository.save(author2);
+
+        List<Author> authors = authorRepository.findAll();
+        List<Book> books = bookService.addBookList(List.of(bookDto,bookDto2));
+        Assertions.assertFalse(books.isEmpty());
+        Assertions.assertEquals(2, books.size());
+
     }
 
     @Test
@@ -95,7 +135,7 @@ class ServiceBookTests {
         Book book1 = Book.builder().title("book1").yearOfCreation(LocalDate.parse("1234-01-01")).build();
         bookRepository.save(book1);
         try {
-            Assertions.assertTrue(!bookRepository.findAll().isEmpty());
+            Assertions.assertFalse(bookRepository.findAll().isEmpty());
             bookService.deleteBook(book1.getBookId());
             Assertions.assertTrue(bookRepository.findAll().isEmpty());
 
@@ -103,40 +143,35 @@ class ServiceBookTests {
             log.error(e.getMessage());
         }
     }
-//    @Test
-//    void testFilter (){
-//        FilterBookDto filterBookDto = FilterBookDto.builder().nameAuthor("author1").build();
-//        Book book1 = Book.builder().bookId(1L).title("book1").yearOfCreation(LocalDate.parse("1234-01-01")).build();
-//        Book book2 = Book.builder().bookId(2L).title("book1").yearOfCreation(LocalDate.parse("1300-01-01")).build();
-//        Author author1 = Author.builder().authorId(1L).name("author1").books(new HashSet<>(Set.of(book1, book2))).build();
-//        authorRepository.save(author1);
-//        bookRepository.save(book1);
-//        bookRepository.save(book2);
-//
-//        try {
-//            List<Book> findBooks = (List<Book>) bookService.filterBook(filterBookDto);
-//            Assertions.assertTrue(!findBooks.isEmpty());
-//        } catch (FilterException e) {
-//            log.error(e.getMessage());
-//        }
-//
-//    }
     @Test
-    void testAddListBook(){
-        Author author = Author.builder().name("author").build();
-        Author author2 = Author.builder().name("author2").build();
-        CreateBookDto bookDto = CreateBookDto.builder().title("book1").author("author").build();
-        CreateBookDto bookDto2 = CreateBookDto.builder().title("book2").author("author2").build();
-        authorRepository.save(author);
-        authorRepository.save(author2);
-        try {
-            List<Author> authors = authorRepository.findAll();
-            List<Book> books = bookService.addBookList(List.of(bookDto,bookDto2));
-            Assertions.assertTrue(!books.isEmpty());
-            Assertions.assertEquals(2, books.size());
-        }catch (Exception e){
-            log.error(e.getMessage());
-        }
+    void testFilterFindByAuthor (){
+        FilterBookDto filterBookDto = FilterBookDto.builder().nameAuthor("author1").build();
+        Book book1 = Book.builder().title("book1").yearOfCreation(LocalDate.parse("1234-01-01")).build();
+        Book book2 = Book.builder().title("book2").yearOfCreation(LocalDate.parse("1300-01-01")).build();
+        Author author1 = Author.builder().name("author1").books(new HashSet<>(Set.of(book1, book2))).build();
+        book1.setAuthor(author1);
+        book2.setAuthor(author1);
+
+        authorRepository.save(author1);
+        bookRepository.save(book1);
+        bookRepository.save(book2);
+
+        GetFilterBookDto findBooks =  bookService.filterBook(filterBookDto);
+        Assertions.assertNotNull(findBooks);
+        Assertions.assertNotNull(findBooks.getBooks());
+        Assertions.assertFalse(findBooks.getBooks().isEmpty());
+        Assertions.assertEquals(2,findBooks.getBooks().size());
+
+        findBooks.getBooks().forEach(book -> {
+            Assertions.assertEquals("author1", book.getAuthor().getName());
+        });
+
+        List<Book> books = findBooks.getBooks().stream()
+                .sorted(Comparator.comparing(Book::getTitle))
+                .toList();
+
+        Assertions.assertEquals("book1", books.getFirst().getTitle());
+        Assertions.assertEquals("book2", books.getLast().getTitle());
 
     }
 
@@ -151,7 +186,7 @@ class ServiceBookTests {
         CreateBookDto bookDto2 = CreateBookDto.builder().title("book3").author("author2").build();
         try {
             List<Book> books = bookService.addBookList(List.of(bookDto, bookDto1,bookDto2));
-            Assertions.assertTrue(!books.isEmpty());
+            Assertions.assertFalse(books.isEmpty());
             Assertions.assertEquals(3, books.size());
         }catch (Exception e){
             log.error(e.getMessage());
@@ -167,8 +202,8 @@ class ServiceBookTests {
         try {
             List<Book> books = bookService.addBookList(List.of(bookDto,bookDto1));
             List<Author> authors = authorRepository.findAll();
-            Assertions.assertTrue(!authors.isEmpty());
-            Assertions.assertTrue(!books.isEmpty());
+            Assertions.assertFalse(authors.isEmpty());
+            Assertions.assertFalse(books.isEmpty());
             Assertions.assertEquals(2, books.size());
         }catch (Exception e){
             log.error(e.getMessage());
@@ -209,9 +244,9 @@ class ServiceBookTests {
         CreateBookDto bookDto2 = CreateBookDto.builder().title("book3").author("author").build();
         CreateBookDto bookDto3 = CreateBookDto.builder().title("book4").author("author").build();
 
-        List<Book> books = bookService.addBookList(List.of(bookDto,bookDto1));
-        List<Book> books1 = bookService.addBookList(List.of(bookDto,bookDto2));
-        List<Book> books2 = bookService.addBookList(List.of(bookDto1,bookDto3));
+        bookService.addBookList(List.of(bookDto,bookDto1));
+        bookService.addBookList(List.of(bookDto,bookDto2));
+        bookService.addBookList(List.of(bookDto1,bookDto3));
 
         var cache = cacheManager.getCache("author");
         Assertions.assertNotNull(cache);
@@ -230,13 +265,14 @@ class ServiceBookTests {
         CreateBookDto bookDto1 = CreateBookDto.builder().title("book2").author("author").build();
         authorRepository.save(author);
         Assertions.assertEquals(0, author.getVersion());
+
         try {
-            List<Book> books = bookService.addBookList(List.of(bookDto,bookDto1));
+            bookService.addBookList(List.of(bookDto,bookDto1));
             List<Author> authors = authorRepository.findAll();
             Assertions.assertNotNull(authors.getFirst().getBooks());
             System.out.println(authors.getFirst().getBooks());//меняется версия?
-            Assertions.assertTrue(!authors.isEmpty());
-            Assertions.assertEquals(1, authors.get(0).getVersion());
+            Assertions.assertFalse(authors.isEmpty());
+            Assertions.assertEquals(1, authors.getFirst().getVersion());
         }catch (Exception e){
             log.error(e.getMessage());
         }
@@ -245,7 +281,6 @@ class ServiceBookTests {
 
     @Test
     void testAddListBookMultiThread(){
-
         List<CreateBookDto> dtos1 = new ArrayList<>();
         List<CreateBookDto> dtos2 = new ArrayList<>();
         List<CreateBookDto> dtos3 = new ArrayList<>();
@@ -281,7 +316,7 @@ class ServiceBookTests {
         Assertions.assertEquals( 200-m,books3.size());
 
         List<Author> authors = authorRepository.findAll();
-        Assertions.assertTrue(!authors.isEmpty());
+        Assertions.assertFalse(authors.isEmpty());
 
     }
 

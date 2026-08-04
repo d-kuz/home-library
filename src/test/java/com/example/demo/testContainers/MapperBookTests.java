@@ -47,7 +47,6 @@ class MapperBookTests {
     BookRepository bookRepository;
 
     public Author mainAuthor;
-    public Author mainAuthor2;
     public CreateBookDto bookDto1;
     public CreateBookDto bookDto2;
 
@@ -55,26 +54,25 @@ class MapperBookTests {
     void setUp() {
         authorRepository.deleteAll();
         mainAuthor = Author.builder().name("author").build();
-        mainAuthor2 = Author.builder().name("author2").build();
         bookDto1 = CreateBookDto.builder().title("book1").yearOfCreation("1994")
-                .location("шкаф1").author("author").build();
-        bookDto2 = CreateBookDto.builder().title("book2").author("author2").build();
+                .location("шкаф1").author("author").description("ok").build();
+        bookDto2 = CreateBookDto.builder().title("book2").author("author").build();
     }
 
 
     @Test
     void testBookDtoMapperCreateBookEntity(){
         authorRepository.save(mainAuthor);
-        Author author1 = authorRepository.getAuthorByName(mainAuthor.getName());
-
         try {
-            Book book = BookDtoMapper.createBookEntity(bookDto1, author1);
+            Book book = BookDtoMapper.createBookEntity(bookDto1, mainAuthor);
 
-            Assertions.assertTrue(!author1.getBooks().isEmpty());
+            Assertions.assertFalse(mainAuthor.getBooks().isEmpty());
             Assertions.assertEquals(bookDto1.getTitle(), book.getTitle());
             Assertions.assertEquals(bookDto1.getAuthor(), book.getAuthor().getName());
             Assertions.assertEquals(bookDto1.getYearOfCreation(), book.getYearOfCreation());
             Assertions.assertEquals(bookDto1.getLocation(), book.getLocation());
+            Assertions.assertEquals(bookDto1.getDescription(), book.getDescription());
+
         }catch (Exception e){
             log.error(e.getMessage());
         }
@@ -82,21 +80,59 @@ class MapperBookTests {
     }
 
     @Test
-    void testBookDtoMapperCreateBooksEntity(){
+    void testBookDtoMapperCreateBookEntityWithEmpty(){
         authorRepository.save(mainAuthor);
 
-        Author author1 = authorRepository.getAuthorByName(mainAuthor.getName());
+        try {
+            Book book = BookDtoMapper.createBookEntity(bookDto2, mainAuthor);
+
+            Assertions.assertFalse(mainAuthor.getBooks().isEmpty());
+            Assertions.assertEquals(bookDto2.getTitle(), book.getTitle());
+            Assertions.assertEquals(bookDto2.getAuthor(), book.getAuthor().getName());
+            Assertions.assertEquals(bookDto2.getYearOfCreation(), book.getYearOfCreation());
+            Assertions.assertEquals(bookDto2.getLocation(), book.getLocation());
+            Assertions.assertEquals(bookDto2.getDescription(), book.getDescription());
+
+        }catch (Exception e){
+            log.error(e.getMessage());
+        }
+
+    }
+
+    @Test
+    void testBookDtoMapperCreateListBookEntity(){
+        authorRepository.save(mainAuthor);
 
         try {
-            Author author2 = author1;
-            List<Book> books = BookDtoMapper.createBooksEntity(new ArrayList<>(List.of(bookDto1)), author2);
+            List<Book> books = BookDtoMapper.createBooksEntity(new ArrayList<>(List.of(bookDto1)), mainAuthor);
 
-            Assertions.assertTrue(!author2.getBooks().isEmpty());
-            Book book = books.get(0);
+            Assertions.assertFalse(mainAuthor.getBooks().isEmpty());
+            Book book = books.getFirst();
             Assertions.assertEquals(bookDto1.getTitle(), book.getTitle());
             Assertions.assertEquals(bookDto1.getAuthor(), book.getAuthor().getName());
             Assertions.assertEquals(bookDto1.getYearOfCreation(), book.getYearOfCreation());
             Assertions.assertEquals(bookDto1.getLocation(), book.getLocation());
+            Assertions.assertEquals(bookDto1.getDescription(), book.getDescription());
+
+        }catch (Exception e){
+            log.error(e.getMessage());
+        }
+
+    }
+
+    @Test
+    void testBookDtoMapperCreateListBookEntityWithEmpty(){
+        authorRepository.save(mainAuthor);
+
+        try {
+            List<Book> books = BookDtoMapper.createBooksEntity(new ArrayList<>(List.of(bookDto2)), mainAuthor);
+
+            Assertions.assertFalse(mainAuthor.getBooks().isEmpty());
+            Book book = books.getFirst();
+            Assertions.assertEquals(bookDto2.getTitle(), book.getTitle());
+            Assertions.assertEquals(bookDto2.getAuthor(), book.getAuthor().getName());
+            Assertions.assertEquals(bookDto2.getYearOfCreation(), book.getYearOfCreation());
+            Assertions.assertEquals(bookDto2.getLocation(), book.getLocation());
 
         }catch (Exception e){
             log.error(e.getMessage());
@@ -108,21 +144,15 @@ class MapperBookTests {
     void testBookDtoMapperCreateBooksEntityWithBooks(){
         authorRepository.save(mainAuthor);
 
-        Author author1 = authorRepository.getAuthorByName(mainAuthor.getName());
-        //Hibernate.initialize(author1.getBooks()); только в транзакции
-
         try {
-            Author author2 = author1;
-            List<Book> books = BookDtoMapper.createBooksEntity(new ArrayList<>(List.of(bookDto1, bookDto2)), author2);
-            Assertions.assertTrue(!author2.getBooks().isEmpty());
-            Assertions.assertEquals(2, author2.getBooks().size());
+            BookDtoMapper.createBooksEntity(new ArrayList<>(List.of(bookDto1, bookDto2)), mainAuthor);
+            Assertions.assertFalse(mainAuthor.getBooks().isEmpty());
+            Assertions.assertEquals(2, mainAuthor.getBooks().size());
         }catch (Exception e){
             log.error(e.getMessage());
         }
 
     }
-
-
 
 
 }

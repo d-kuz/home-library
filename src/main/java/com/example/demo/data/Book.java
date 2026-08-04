@@ -34,4 +34,7 @@ public class Book{
     LocalDate yearOfCreation;
 
     String location;
+
+    String description;
+
 }

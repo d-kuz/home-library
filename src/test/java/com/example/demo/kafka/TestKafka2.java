@@ -54,7 +54,6 @@ public class TestKafka2 {
     @Autowired
     KafkaTemplate<String, String> kafkaTemplate;
 
-    // Создаем топик
     @BeforeAll
     static void createTopics() throws Exception {
         Properties props = new Properties();
