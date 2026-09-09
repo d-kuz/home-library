@@ -76,11 +76,5 @@ REST API сервис для управления коллекцией бума�
 
 ## 🛠️ Технологический стек
 
-**Backend:** Java 21, Spring Boot 3.5, Spring Data JPA/Hibernate, Spring Cache, Lombok
-
-**База данных:** PostgreSQL
-
-**Тестирование:** JUnit 5, Mockito, Testcontainers ,Spring Kafka (обучающие тесты)
-
-**Инструменты:** OpenAPI (springdoc-openapi), Gradle, Git
+Java 21, Spring Boot 3.5, Spring Data JPA, Hibernate, PostgreSQL, Spring Kafka, Spring Cache, Spring Web, Lombok, Testcontainers, JUnit 5, Mockito, Maven, Git.
 
