@@ -1,9 +1,12 @@
 package com.example.demo.testContainers;
 
 import com.example.demo.data.Author;
+import com.example.demo.data.Book;
 import com.example.demo.dto.request.CreateAuthorDto;
 import com.example.demo.dto.request.CreateBookDto;
 import com.example.demo.dto.request.FilterBookDto;
+import com.example.demo.dto.request.UpdateBookDto;
+import com.example.demo.exception.DeleteException;
 import com.example.demo.exception.NotFoundException;
 import com.example.demo.repository.AuthorRepository;
 import com.example.demo.repository.BookRepository;
@@ -20,12 +23,16 @@ import org.springframework.cache.CacheManager;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.time.LocalDate;
+import java.util.HashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
 
 @Log4j2
 @Testcontainers
@@ -65,14 +72,20 @@ class ServiceBookNegTests {
     public Author mainAuthor;
     public CreateBookDto bookDto1;
     public CreateBookDto bookDto2;
+    public Book testBook;
 
     @BeforeEach
     void setUp() {
         authorRepository.deleteAll();
         cacheManager.getCache("author").clear();
         mainAuthor = Author.builder().name("author").build();
-        bookDto1 = CreateBookDto.builder().title("book1").author("author").build();
+        bookDto1 = CreateBookDto.builder().title("book1").author("author")
+                .description("description").location("location").build();
         bookDto2 = CreateBookDto.builder().title("book2").author("author").build();
+        testBook = Book.builder().title("book1").author(mainAuthor).description("description")
+                .location("location").build();
+        mainAuthor.getBooks().add(testBook);
+
     }
 
     @Test
@@ -112,6 +125,50 @@ class ServiceBookNegTests {
         });
 
         Assertions.assertEquals("Книга с ID " + nonExistentId + " не найдена", exception.getMessage());
+    }
+
+    @Test
+    void testUpdateBook_WhenBookDoesNotExist() {
+        Long nonExistentId = 50L;
+        UpdateBookDto dto = UpdateBookDto.builder().title("New Title").build();
+
+        NotFoundException exception = Assertions.assertThrows(NotFoundException.class, () -> {
+            bookService.updateBook(nonExistentId, dto);
+        });
+
+        Assertions.assertEquals("Книга с ID " + nonExistentId + " не найдена", exception.getMessage());
+    }
+
+    @Test
+    void testUpdateBook_WithNullDto() {
+        Author savedAuthor = authorRepository.save(mainAuthor);
+        Book savedBook = savedAuthor.getBooks().iterator().next();
+
+        Assertions.assertThrows(NullPointerException.class, () -> {
+            bookService.updateBook(savedBook.getBookId(), null);
+        });
+
+        Book untouchedBook = bookRepository.findById(savedBook.getBookId()).get();
+        Assertions.assertEquals("book1", untouchedBook.getTitle());
+        Assertions.assertEquals("author", untouchedBook.getAuthor().getName());
+    }
+
+    @Test
+    void testUpdateBook_WithBlankFields() throws NotFoundException {
+        authorRepository.save(mainAuthor);
+
+        UpdateBookDto dto = UpdateBookDto.builder()
+                .title("    ")
+                .description("")
+                .location("New Location")
+                .build();
+
+        bookService.updateBook(testBook.getBookId(), dto);
+        Book updatedBook = bookRepository.findById(testBook.getBookId()).get();
+
+        Assertions.assertEquals(testBook.getTitle(), updatedBook.getTitle());
+        Assertions.assertEquals(testBook.getDescription(), updatedBook.getDescription());
+        Assertions.assertEquals(updatedBook.getLocation(), updatedBook.getLocation());
     }
 
     @Test
