@@ -1,8 +1,10 @@
 package com.example.demo.testContainers;
 
 import com.example.demo.data.Author;
+import com.example.demo.dto.request.CreateAuthorDto;
 import com.example.demo.dto.request.CreateBookDto;
 import com.example.demo.dto.request.FilterBookDto;
+import com.example.demo.exception.NotFoundException;
 import com.example.demo.repository.AuthorRepository;
 import com.example.demo.repository.BookRepository;
 import com.example.demo.service.AuthorService;
@@ -72,6 +74,27 @@ class ServiceBookNegTests {
         bookDto1 = CreateBookDto.builder().title("book1").author("author").build();
         bookDto2 = CreateBookDto.builder().title("book2").author("author").build();
     }
+
+    @Test
+    void testAddAuthor_WithNullDto() {
+        Assertions.assertThrows(NullPointerException.class, () -> {
+            bookService.addAuthor(null);
+        });
+
+        Assertions.assertTrue(authorRepository.findAll().isEmpty());
+    }
+
+    @Test
+    void testAddAuthor_WithNullName() {
+        CreateAuthorDto invalidDto = CreateAuthorDto.builder().name(null).build();
+
+        Assertions.assertThrows(NullPointerException.class, () -> {
+            bookService.addAuthor(invalidDto);
+        });
+
+        Assertions.assertTrue(authorRepository.findAll().isEmpty());
+    }
+
 
     @Test
     void testFilterBook_WithNullOrEmptyFields() {
