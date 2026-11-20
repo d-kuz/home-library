@@ -2,6 +2,7 @@ package com.example.demo.testContainers;
 
 import com.example.demo.data.Author;
 import com.example.demo.dto.request.CreateBookDto;
+import com.example.demo.dto.request.FilterBookDto;
 import com.example.demo.repository.AuthorRepository;
 import com.example.demo.repository.BookRepository;
 import com.example.demo.service.AuthorService;
@@ -22,6 +23,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @Log4j2
 @Testcontainers
@@ -71,6 +73,46 @@ class ServiceBookNegTests {
         bookDto2 = CreateBookDto.builder().title("book2").author("author").build();
     }
 
+    @Test
+    void testFilterBook_WithNullOrEmptyFields() {
+        FilterBookDto nullFieldsDto = FilterBookDto.builder()
+                .nameAuthor(null)
+                .title(null)
+                .build();
+
+        IllegalArgumentException exception1 = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            bookService.filterBook(nullFieldsDto);
+        });
+        Assertions.assertEquals("Необходимо указать имя автора или название книги", exception1.getMessage());
+
+        FilterBookDto emptyFieldsDto = FilterBookDto.builder()
+                .nameAuthor("   ")
+                .title("")
+                .build();
+
+        IllegalArgumentException exception2 = Assertions.assertThrows(IllegalArgumentException.class, () -> {
+            bookService.filterBook(emptyFieldsDto);
+        });
+        Assertions.assertEquals("Необходимо указать имя автора или название книги", exception2.getMessage());
+    }
+
+    @Test
+    void testFilterBook_WithNonExistentAuthor() {
+        FilterBookDto unknownAuthorDto = FilterBookDto.builder()
+                .nameAuthor("Unknown Author")
+                .build();
+
+        Assertions.assertThrows(NoSuchElementException.class, () -> {
+            bookService.filterBook(unknownAuthorDto);
+        });
+    }
+
+    @Test
+    void testFilterBook_WithNullDto() {
+        Assertions.assertThrows(NullPointerException.class, () -> {
+            bookService.filterBook(null);
+        });
+    }
 
     @Test
     void testAddListBook_WithNullList() {
@@ -102,7 +144,7 @@ class ServiceBookNegTests {
     }
 
     @Test
-    void testAddListBook_WithNullAuthorName_ShouldFailConstraintAndRollback() {
+    void testAddListBook_WithNullAuthorName() {
         CreateBookDto invalidDto = CreateBookDto.builder().title("book3").author(null).build();
 
         List<CreateBookDto> dtos = List.of(bookDto1, invalidDto);
