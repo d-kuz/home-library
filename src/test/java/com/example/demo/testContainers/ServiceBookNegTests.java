@@ -97,6 +97,24 @@ class ServiceBookNegTests {
 
 
     @Test
+    void testFindById_WithNullId() {
+        Assertions.assertThrows(NullPointerException.class, () -> {
+            bookService.findById(null);
+        });
+    }
+
+    @Test
+    void testFindById_WhenBookDoesNotExist() {
+        Long nonExistentId = 5L;
+
+        NotFoundException exception = Assertions.assertThrows(NotFoundException.class, () -> {
+            bookService.findById(nonExistentId);
+        });
+
+        Assertions.assertEquals("Книга с ID " + nonExistentId + " не найдена", exception.getMessage());
+    }
+
+    @Test
     void testFilterBook_WithNullOrEmptyFields() {
         FilterBookDto nullFieldsDto = FilterBookDto.builder()
                 .nameAuthor(null)
