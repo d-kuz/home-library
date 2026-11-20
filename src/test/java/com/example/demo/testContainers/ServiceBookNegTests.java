@@ -23,16 +23,12 @@ import org.springframework.cache.CacheManager;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
-import java.time.LocalDate;
-import java.util.HashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
-import java.util.Set;
 
 @Log4j2
 @Testcontainers
@@ -65,9 +61,6 @@ class ServiceBookNegTests {
 
     @Autowired
     CacheManager cacheManager;
-
-    @Autowired
-    private AuthorService authorService;
 
     public Author mainAuthor;
     public CreateBookDto bookDto1;
@@ -168,7 +161,25 @@ class ServiceBookNegTests {
 
         Assertions.assertEquals(testBook.getTitle(), updatedBook.getTitle());
         Assertions.assertEquals(testBook.getDescription(), updatedBook.getDescription());
-        Assertions.assertEquals(updatedBook.getLocation(), updatedBook.getLocation());
+        Assertions.assertEquals(dto.getLocation(), updatedBook.getLocation());
+    }
+
+    @Test
+    void testDeleteBook_WithNullId() {
+        DeleteException exception = Assertions.assertThrows(DeleteException.class, () -> {
+            bookService.deleteBook(null);
+        });
+
+        Assertions.assertTrue(exception.getMessage().contains("Не удалена книга с ID null"));
+    }
+
+    @Test
+    void testDeleteBook_WhenBookDoesNotExist() {
+        Long nonExistentId = 10L;
+
+        Assertions.assertDoesNotThrow(() -> {
+            bookService.deleteBook(nonExistentId);
+        });
     }
 
     @Test
